@@ -1,18 +1,12 @@
-// Copy this content into a new file named 'logging.js'.
-// This is a simple logger module to handle console output.
+const { createLogger, format, transports } = require('winston');
 
-const logger = {
-    info: (message) => {
-        console.log(`[INFO] ${message}`);
-    },
-    warn: (message) => {
-        console.warn(`[WARN] ${message}`);
-    },
-    error: (message) => {
-        console.error(`[ERROR] ${message}`);
-    }
-};
+const logger = createLogger({
+    level: 'info',
+    format: format.combine(
+        format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),
+        format.printf(({ timestamp, level, message }) => `[${timestamp}] [${level.toUpperCase()}] ${message}`)
+    ),
+    transports: [new transports.Console()]
+});
 
-module.exports = {
-    logger
-};
+module.exports = { logger };

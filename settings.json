@@ -18,7 +18,7 @@
             "password": ""
         },
         "auto-join": {
-            "enabled": false
+            "enabled": true
         },
         "chat-messages": {
             "enabled": false,
