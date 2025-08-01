@@ -77,12 +77,13 @@ function createBot() {
 
             // Jumping up and down
             setInterval(() => {
-                // A more reliable way to jump than just toggling the jump state rapidly
+                logger.info('Bot is jumping...');
                 bot.setControlState('jump', true);
                 setTimeout(() => {
                     bot.setControlState('jump', false);
-                }, 500); // 500ms is a good delay for a single jump
-            }, 2000); // Jump every 2 seconds
+                    logger.info('Jump completed.');
+                }, 500); // 500ms jump duration
+            }, 10000); // Jump every 2 seconds
         }
     });
 
