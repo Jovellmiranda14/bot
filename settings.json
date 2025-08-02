@@ -1,5 +1,5 @@
 {
-  "bot-account": [
+  "bots": [
     {
       "username": "Shadow",
       "password": "",
@@ -7,11 +7,6 @@
     },
     {
       "username": "Bot",
-      "password": "",
-      "type": "offline"
-    },
-    {
-      "username": "AFK",
       "password": "",
       "type": "offline"
     }
@@ -33,10 +28,16 @@
       "enabled": true
     },
     "chat-messages": {
-      "enabled": false,
-      "repeat": false,
-      "repeat-delay": 10,
-      "messages": ["Hello, world!", "This is a test message from my bot."]
+      "enabled": true,
+      "repeat": true,
+      "repeat-delay": 15,
+      "messages": [
+        "Hi there!",
+        "Anyone online?",
+        "This server is nice.",
+        "Shadow is here.",
+        "Beep boop 🤖"
+      ]
     },
     "anti-afk": {
       "enabled": true,

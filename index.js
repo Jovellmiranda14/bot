@@ -6,7 +6,7 @@ const loggers = require('./logging.js');
 const logger = loggers.logger;
 const app = express();
 
-// Web server to prevent the app from idling
+// Web server to keep bot alive
 app.get('/', (req, res) => {
   const currentUrl = `${req.protocol}://${req.get('host')}${req.originalUrl}`;
   res.send('Keep-alive link: <a href="' + currentUrl + '">' + currentUrl + '</a>');
@@ -76,19 +76,25 @@ function createBot(botConfig, index = 0) {
     }
   });
 
-  // Chat log
+  // Log and randomly reply to chat
   bot.on('chat', (username, message) => {
     if (config.utils['chat-log']) {
       logger.info(`[Bot-${index}] <${username}> ${message}`);
     }
+
+    if (username === bot.username) return; // ignore self
+
+    const shouldRespond = Math.random() < 0.5; // 20% chance
+    if (shouldRespond) {
+      const reply = `Hello ${username}, you said: "${message}"`;
+      setTimeout(() => bot.chat(reply), 1000 + Math.random() * 3000);
+    }
   });
 
-  // On bot death
   bot.on('death', () => {
     logger.warn(`[Bot-${index}] Died and respawned`);
   });
 
-  // Reconnect
   bot.on('end', () => {
     if (config.utils['auto-reconnect']) {
       logger.warn(`[Bot-${index}] Disconnected. Reconnecting...`);
@@ -96,7 +102,6 @@ function createBot(botConfig, index = 0) {
     }
   });
 
-  // Kicked
   bot.on('kicked', (reason) => {
     let reasonText = '';
     try {
@@ -109,13 +114,11 @@ function createBot(botConfig, index = 0) {
     logger.warn(`[Bot-${index}] Kicked: ${reasonText || 'Unknown reason'}`);
   });
 
-  // Errors
   bot.on('error', (err) => {
     logger.error(`[Bot-${index}] Error: ${err.message}`);
   });
 }
 
-// Create all bots
 config.bots.forEach((botConfig, index) => {
   createBot(botConfig, index);
 });
