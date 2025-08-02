@@ -87,7 +87,7 @@ function createBot(botConfig, index = 0) {
     const shouldRespond = Math.random() < 0.5; // 20% chance
     if (shouldRespond) {
       const reply = `Hello ${username}`;
-      setTimeout(() => bot.chat(reply), 1000 + Math.random() * 3000);
+      setTimeout(() => bot.chat(reply), 5000 + Math.random() * 3000);
     }
   });
 
