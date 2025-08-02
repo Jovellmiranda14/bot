@@ -86,7 +86,7 @@ function createBot(botConfig, index = 0) {
 
     const shouldRespond = Math.random() < 0.5; // 20% chance
     if (shouldRespond) {
-      const reply = `Hello ${username}, you said: "${message}"`;
+      const reply = `Hello ${username}`;
       setTimeout(() => bot.chat(reply), 1000 + Math.random() * 3000);
     }
   });
@@ -110,7 +110,7 @@ function createBot(botConfig, index = 0) {
     } catch {
       reasonText = reason;
     }
-    reasonText = reasonText.replace(/§./g, '');
+    reasonText = String(reasonText).replace(/§./g, '');
     logger.warn(`[Bot-${index}] Kicked: ${reasonText || 'Unknown reason'}`);
   });
 
