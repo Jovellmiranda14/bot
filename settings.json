@@ -1,39 +1,48 @@
 {
-    "bot-account": {
-        "username": "Shadow",
-        "password": "",
-        "type": "offline"
+  "bot-account": [
+    {
+      "username": "Shadow",
+      "password": "",
+      "type": "offline"
     },
-    "server": {
-        "ip": "JovellMiranda.aternos.me",
-        "port": 19038,
-        "version": "1.21.1"
+    {
+      "username": "Bot",
+      "password": "",
+      "type": "offline"
     },
-    "utils": {
-        "auto-reconnect": true,
-        "auto-reconnect-delay": 5000,
-        "chat-log": true,
-        "auto-auth": {
-            "enabled": false,
-            "password": ""
-        },
-        "auto-join": {
-            "enabled": true
-        },
-        "chat-messages": {
-            "enabled": false,
-            "repeat": false,
-            "repeat-delay": 10,
-            "messages": [
-                "Hello, world!",
-                "This is a test message from my bot."
-            ]
-        },
-        "anti-afk": {
-            "enabled": true,
-            "sneak": false,
-            "jump": true,
-            "rotate": false
-        }
+    {
+      "username": "AFK",
+      "password": "",
+      "type": "offline"
     }
+  ],
+  "server": {
+    "ip": "JovellMiranda.aternos.me",
+    "port": 19038,
+    "version": "1.21.1"
+  },
+  "utils": {
+    "auto-reconnect": true,
+    "auto-reconnect-delay": 5000,
+    "chat-log": true,
+    "auto-auth": {
+      "enabled": false,
+      "password": ""
+    },
+    "auto-join": {
+      "enabled": true
+    },
+    "chat-messages": {
+      "enabled": false,
+      "repeat": false,
+      "repeat-delay": 10,
+      "messages": ["Hello, world!", "This is a test message from my bot."]
+    },
+    "anti-afk": {
+      "enabled": true,
+      "sneak": false,
+      "jump": true,
+      "rotate": false
+    }
+  }
 }
