@@ -77,6 +77,8 @@ function createBot(botConfig, index = 0) {
   });
 
   // Log and randomly reply to chat
+  const lastReplyTime = new Map(); // Track last reply times per username
+
   bot.on('chat', (username, message) => {
     if (config.utils['chat-log']) {
       logger.info(`[Bot-${index}] <${username}> ${message}`);
@@ -84,10 +86,17 @@ function createBot(botConfig, index = 0) {
 
     if (username === bot.username) return; // ignore self
 
-    const shouldRespond = Math.random() < 0.5; // 20% chance
-    if (shouldRespond) {
-      const reply = `Hello ${username}`;
-      setTimeout(() => bot.chat(reply), 5000 + Math.random() * 3000);
+    const now = Date.now();
+    const lastReplied = lastReplyTime.get(username) || 0;
+    const FIVE_MINUTES = 5 * 60 * 1000;
+
+    if (now - lastReplied >= FIVE_MINUTES) {
+      const shouldRespond = Math.random() < 0.5; // 50% chance to reply
+      if (shouldRespond) {
+        const reply = `Hello ${username}`;
+        setTimeout(() => bot.chat(reply), 500 + Math.random() * 1500); // Short delay
+        lastReplyTime.set(username, now); // Update last reply time
+      }
     }
   });
 
