@@ -91,7 +91,7 @@ function createBot(botConfig, index = 0) {
     const FIVE_MINUTES = 5 * 60 * 1000;
 
     if (now - lastReplied >= FIVE_MINUTES) {
-      const shouldRespond = Math.random() < 0.5; // 50% chance to reply
+      const shouldRespond = Math.random() < 0.2; // 50% chance to reply
       if (shouldRespond) {
         const reply = `Hello ${username}`;
         setTimeout(() => bot.chat(reply), 500 + Math.random() * 1500); // Short delay
