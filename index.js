@@ -19,7 +19,7 @@ const bots = Array.from({ length: parseInt(process.env.BOT_COUNT) }).map((_, i) 
   password: process.env[`BOT_${i}_PASSWORD`] || '',
   type: process.env[`BOT_${i}_TYPE`] || 'offline'
 }));
-
+ 
 function createBot(botConfig, index = 0) {
   const bot = mineflayer.createBot({
     username: botConfig.username,
