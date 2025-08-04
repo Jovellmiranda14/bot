@@ -6,8 +6,77 @@ const logger = loggers.logger;
 const app = express();
 
 app.get('/', (req, res) => {
+  // Get the current URL from the request
   const currentUrl = `${req.protocol}://${req.get('host')}${req.originalUrl}`;
-  res.send('Keep-alive link: <a href="' + currentUrl + '">' + currentUrl + '</a>');
+  const htmlResponse = `
+    <!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bot Dashboard</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-900 text-white font-sans min-h-screen flex items-center justify-center p-4">
+  <div class="bg-gray-800 p-8 md:p-12 rounded-2xl shadow-2xl text-center max-w-4xl w-full">
+    <div class="space-y-4">
+      <h1 class="text-4xl md:text-5xl font-extrabold text-blue-400">Bot Dashboard</h1>
+      <p class="text-gray-300 text-xl font-light">
+        Your hub for monitoring and controlling your Minecraft bots.
+      </p>
+    </div>
+
+    <div class="mt-8">
+      <a href="${currentUrl}" class="
+        inline-block
+        px-10 py-4
+        bg-blue-600 hover:bg-blue-700
+        text-white font-bold
+        rounded-full shadow-lg
+        transform transition-transform duration-300 hover:scale-105
+        text-lg
+      ">
+        ${currentUrl}
+      </a>
+      <p class="mt-4 text-gray-400 text-sm">Click the link to keep the server alive.</p>
+    </div>
+
+    <div class="mt-12 pt-8 border-t border-gray-700 text-left">
+      <h2 class="text-3xl font-bold text-blue-300 mb-6">Core Functions</h2>
+      <ul class="grid md:grid-cols-2 gap-6 text-lg">
+        <li class="p-4 bg-gray-700 rounded-lg shadow-md">
+          <span class="text-white font-bold">Auto Authentication:</span> Automatically logs into servers with stored credentials.
+        </li>
+        <li class="p-4 bg-gray-700 rounded-lg shadow-md">
+          <span class="text-white font-bold">Anti-AFK:</span> Simulates player activity to prevent timeouts and kicks.
+        </li>
+        <li class="p-4 bg-gray-700 rounded-lg shadow-md">
+          <span class="text-white font-bold">Auto Reconnect:</span> Ensures bot rejoins the server after any disconnection.
+        </li>
+        <li class="p-4 bg-gray-700 rounded-lg shadow-md">
+          <span class="text-white font-bold">Chat Responses:</span> Engages with players by sending automated, time-gated replies.
+        </li>
+      </ul>
+    </div>
+
+    <div class="mt-12 pt-8 border-t border-dashed border-gray-600 text-left">
+      <h2 class="text-3xl font-bold text-yellow-400 mb-6">🚧 Coming Soon</h2>
+      <ul class="grid md:grid-cols-2 gap-6 text-lg">
+        <li class="p-4 bg-gray-700 rounded-lg shadow-md">
+          <span class="text-white font-bold">Advanced Features:</span> Smarter AI, inventory management, and more complex tasks.
+        </li>
+        <li class="p-4 bg-gray-700 rounded-lg shadow-md">
+          <span class="text-white font-bold">Web Control Panel:</span> A full browser-based interface to manage all bot functions.
+        </li>
+      </ul>
+    </div>
+  </div>
+</body>
+</html>
+  `;
+
+  // Send the newly designed HTML
+  res.send(htmlResponse);
 });
 
 app.listen(3000, () => {
@@ -19,7 +88,7 @@ const bots = Array.from({ length: parseInt(process.env.BOT_COUNT) }).map((_, i) 
   password: process.env[`BOT_${i}_PASSWORD`] || '',
   type: process.env[`BOT_${i}_TYPE`] || 'offline'
 }));
- 
+
 function createBot(botConfig, index = 0) {
   const bot = mineflayer.createBot({
     username: botConfig.username,
