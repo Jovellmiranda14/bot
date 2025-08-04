@@ -12,7 +12,6 @@ app.use(express.json());
 app.get('/bots', (req, res) => {
   const botsStatus = activeBots.map(bot => {
     const username = bot.instance?.username || bot.config.username || 'Unknown';
-    logger.info(`[Server] Bot - ${bot.index} status: username = ${username}, instance = ${!!bot.instance} `);
     return {
       username,
       status: bot.instance ? 'online' : 'offline',
@@ -28,22 +27,25 @@ app.post('/control', (req, res) => {
   const bot = activeBots.find(b => b.index === index);
 
   if (!bot) {
+    logger.error(`[Server] Command '${command}' failed. Bot-${index} not found.`);
     return res.status(404).json({ error: 'Bot not found' });
   }
 
   if (command === 'start' && !bot.instance) {
-    logger.info(`[Server] Starting bot - ${index}...`);
+    logger.info(`[Server] Received 'start' command for Bot-${index}.`);
     startBot(bot.config, index);
-    return res.status(200).json({ message: `Bot - ${index} started` });
+    return res.status(200).json({ message: `Bot-${index} started.` });
   }
 
   if (command === 'stop' && bot.instance) {
-    logger.warn(`[Server] Stopping bot - ${index}...`);
+    logger.info(`[Server] Received 'stop' command for Bot-${index}.`);
+    activeBots[index].manuallyStopped = true;
     stopBot(index);
-    return res.status(200).json({ message: `Bot - ${index} stopped` });
+    return res.status(200).json({ message: `Bot-${index} stopped.` });
   }
 
-  res.status(400).json({ error: `Invalid command or bot is already ${command === 'start' ? 'online' : 'offline'} ` });
+  logger.warn(`[Server] Invalid command '${command}' for Bot-${index}. Bot is already ${bot.instance ? 'online' : 'offline'}.`);
+  res.status(400).json({ error: `Invalid command or bot is already ${command === 'start' ? 'online' : 'offline'}.` });
 });
 
 // Dashboard Route
@@ -182,15 +184,11 @@ app.get('/', (req, res) => {
 });
 
 // Bot Configuration
-const botsConfig = Array.from({ length: parseInt(process.env.BOT_COUNT) || 0 }).map((_, i) => {
-  const config = {
-    username: process.env[`BOT_${i}_USERNAME`] || `Bot${i}`,
-    password: process.env[`BOT_${i}_PASSWORD`] || '',
-    type: process.env[`BOT_${i}_TYPE`] || 'offline'
-  };
-  logger.info(`[Config] Bot-${i}: username=${config.username}, type=${config.type}`);
-  return config;
-});
+const botsConfig = Array.from({ length: parseInt(process.env.BOT_COUNT) || 0 }).map((_, i) => ({
+  username: process.env[`BOT_${i}_USERNAME`] || `Bot${i}`,
+  password: process.env[`BOT_${i}_PASSWORD`] || '',
+  type: process.env[`BOT_${i}_TYPE`] || 'offline'
+}));
 
 // Bot Creation
 function createBotInstance(botConfig, index) {
@@ -199,7 +197,6 @@ function createBotInstance(botConfig, index) {
     port: parseInt(process.env.SERVER_PORT) || 25565,
     version: process.env.SERVER_VERSION || false
   };
-  logger.info(`[Bot-${index}] Creating bot with username: ${botConfig.username}, host: ${serverDetails.host}, port: ${serverDetails.port}, version: ${serverDetails.version}`);
 
   try {
     const bot = mineflayer.createBot({
@@ -209,7 +206,7 @@ function createBotInstance(botConfig, index) {
       ...serverDetails
     });
 
-    bot.username = botConfig.username; // Set username immediately
+    bot.username = botConfig.username;
     setupBotEventListeners(bot, botConfig, index);
     return bot;
   } catch (err) {
@@ -223,16 +220,17 @@ function setupBotEventListeners(bot, botConfig, index) {
   const lastReplyTime = new Map();
 
   bot.once('spawn', () => {
-    logger.info(`[Bot-${index}] Successfully joined as ${bot.username}`);
+    logger.info(`[Bot-${index}] ${bot.username} joined the server.`);
     if (process.env.AUTO_AUTH_ENABLED === 'true') {
       const password = process.env.AUTO_AUTH_PASSWORD;
       if (!password) {
-        logger.warn(`[Bot-${index}] AUTO_AUTH_PASSWORD not set`);
+        logger.warn(`[Bot-${index}] AUTO_AUTH_PASSWORD not set for auto-auth.`);
         return;
       }
       setTimeout(() => {
         bot.chat(`/register ${password} ${password}`);
         bot.chat(`/login ${password}`);
+        logger.info(`[Bot-${index}] Attempted auto-auth.`);
       }, 500);
     }
 
@@ -242,20 +240,25 @@ function setupBotEventListeners(bot, botConfig, index) {
         const delay = parseInt(process.env.CHAT_MESSAGES_REPEAT_DELAY) || 15;
         let i = 0;
         bot.chatInterval = setInterval(() => {
-          if (messages[i]) bot.chat(messages[i]);
+          if (messages[i]) {
+            bot.chat(messages[i]);
+            logger.debug(`[Bot-${index}] Sent scheduled chat message: "${messages[i]}".`);
+          }
           i = (i + 1) % messages.length;
         }, delay * 1000);
       } else {
-        messages.forEach(msg => bot.chat(msg));
+        messages.forEach(msg => {
+          bot.chat(msg);
+          logger.debug(`[Bot-${index}] Sent one-time chat message: "${msg}".`);
+        });
       }
     }
 
     if (process.env.ANTI_AFK_ENABLED === 'true') {
+      logger.info(`[Bot-${index}] Anti-AFK is enabled.`);
       if (process.env.ANTI_AFK_SNEAK === 'true') bot.setControlState('sneak', true);
       if (process.env.ANTI_AFK_ROTATE === 'true') {
-        bot.rotateInterval = setInterval(() => {
-          bot.look(bot.entity.yaw + 1, bot.entity.pitch, true);
-        }, 100);
+        bot.rotateInterval = setInterval(() => bot.look(bot.entity.yaw + 1, bot.entity.pitch, true), 100);
       }
       if (process.env.ANTI_AFK_JUMP === 'true') {
         bot.jumpInterval = setInterval(() => {
@@ -267,7 +270,7 @@ function setupBotEventListeners(bot, botConfig, index) {
   });
 
   bot.on('chat', (username, message) => {
-    if (process.env.CHAT_LOG === 'true') {
+    if (process.env.CHAT_LOG === 'true' && username !== bot.username) {
       logger.info(`[Bot-${index}] <${username}> ${message}`);
     }
     if (username === bot.username) return;
@@ -278,44 +281,37 @@ function setupBotEventListeners(bot, botConfig, index) {
     if (now - last >= FIVE_MIN && Math.random() < 0.1) {
       setTimeout(() => bot.chat(`Hello ${username}`), 500 + Math.random() * 1500);
       lastReplyTime.set(username, now);
+      logger.debug(`[Bot-${index}] Sent random reply to ${username}.`);
     }
   });
 
-  bot.on('death', () => logger.warn(`[Bot-${index}] Died and respawned`));
-
   bot.on('end', () => {
-    logger.info(`[Bot-${index}] Disconnected`);
     clearBotIntervals(bot);
-
     const botState = activeBots[index];
     botState.instance = null;
 
-    // Check if the stop was manual
     if (botState.manuallyStopped) {
       logger.warn(`[Bot-${index}] Manually stopped. Auto-reconnect is disabled.`);
       botState.manuallyStopped = false;
+    } else {
+      logger.warn(`[Bot-${index}] Disconnected. Attempting to reconnect...`);
+      if (process.env.AUTO_RECONNECT === 'true') {
+        setTimeout(() => startBot(botState.config, index), parseInt(process.env.AUTO_RECONNECT_DELAY) || 5000);
+      }
     }
   });
 
   bot.on('kicked', (reason) => {
     try {
       const parsed = JSON.parse(reason);
-      logger.warn(`[Bot-${index}] Kicked: ${parsed.text || parsed.extra?.[0]?.text || 'Unknown'}`);
+      logger.warn(`[Bot-${index}] Kicked: ${parsed.text || parsed.extra?.[0]?.text || 'Unknown reason'}`);
     } catch {
       logger.warn(`[Bot-${index}] Kicked: ${reason}`);
-    }
-    if (process.env.AUTO_RECONNECT === 'true' && !botState.manuallyStopped) {
-      logger.warn(`[Bot-${index}] Reconnecting in ${process.env.AUTO_RECONNECT_DELAY || 5000}ms...`);
-      setTimeout(() => startBot(botState.config, index), parseInt(process.env.AUTO_RECONNECT_DELAY) || 5000);
     }
   });
 
   bot.on('error', (err) => {
-    logger.error(`[Bot-${index}] Error: ${err.message}`);
-  });
-
-  bot.on('login', () => {
-    logger.info(`[Bot-${index}] Logged in to server`);
+    logger.error(`[Bot-${index}] An error occurred: ${err.message}`);
   });
 }
 
@@ -324,9 +320,9 @@ function startBot(botConfig, index) {
   const botInstance = createBotInstance(botConfig, index);
   if (botInstance) {
     activeBots[index].instance = botInstance;
-    logger.info(`[Bot-${index}] Started with username: ${botConfig.username}`);
+    logger.info(`[Bot-${index}] Instance created and added to activeBots.`);
   } else {
-    logger.error(`[Bot-${index}] Failed to start bot`);
+    logger.error(`[Bot-${index}] Failed to create bot instance.`);
     activeBots[index].instance = null;
   }
 }
@@ -336,8 +332,9 @@ function stopBot(index) {
   if (bot) {
     clearBotIntervals(bot);
     bot.quit();
-    activeBots[index].instance = null;
-    logger.info(`[Bot-${index}] Stopped`);
+    logger.info(`[Bot-${index}] Quit command sent to bot instance.`);
+  } else {
+    logger.warn(`[Bot-${index}] Stop command ignored, bot is not online.`);
   }
 }
 
@@ -352,38 +349,37 @@ function initializeBots() {
   const requiredEnvVars = ['BOT_COUNT', 'SERVER_IP', 'SERVER_PORT'];
   for (const envVar of requiredEnvVars) {
     if (!process.env[envVar]) {
-      logger.error(`Missing required environment variable: ${envVar}`);
+      logger.error(`Missing required environment variable: ${envVar}. Bot management server will not start.`);
       return;
     }
   }
 
   botsConfig.forEach((config, index) => {
     if (!config.username) {
-      logger.error(`[Bot-${index}] No username specified`);
+      logger.error(`[Config] Bot-${index} has no username specified. Skipping initialization.`);
       return;
     }
-    activeBots.push({ config, instance: null, index });
-    logger.info(`[Bot-${index}] Initialized with username: ${config.username}`);
+    activeBots.push({ config, instance: null, index, manuallyStopped: false });
+    logger.info(`[Config] Initialized bot configuration for Bot-${index} (${config.username}).`);
   });
 
   if (activeBots.length === 0) {
-    logger.error('No bots initialized due to configuration errors');
+    logger.warn('No bots initialized due to configuration errors. Check your .env file.');
     return;
   }
 
-  logger.info('All bots initialized. You can now start them from the dashboard.');
+  logger.info(`Initialized ${activeBots.length} bot(s).`);
 
-  // Auto-join if enabled
   if (process.env.AUTO_JOIN_ENABLED === 'true') {
-    activeBots.forEach(bot => {
-      logger.info(`[Bot-${bot.index}] Auto-joining server...`);
-      startBot(bot.config, bot.index);
-    });
+    logger.info('Auto-join is enabled. Starting all bots...');
+    activeBots.forEach(bot => startBot(bot.config, bot.index));
+  } else {
+    logger.info('Auto-join is disabled. Start bots manually from the web dashboard.');
   }
 }
 
 // Start Server
 app.listen(3000, () => {
-  logger.info('Web server running on port 3000');
+  logger.info('Web server is running on port 3000. Access the dashboard at http://localhost:3000');
   initializeBots();
 });
